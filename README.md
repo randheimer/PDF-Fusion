@@ -190,7 +190,7 @@ Erstellt mit ❤️ für die Open-Source-Community
 ## 📞 Support
 
 Bei Fragen oder Problemen:
-- Öffnen Sie ein [Issue](https://github.com/IhrUsername/pdf-fusion/issues)
+- Öffnen Sie ein [Issue](https://github.com/randheimer/pdf-fusion/issues)
 - Kontaktieren Sie mich über GitHub
 
 ---
