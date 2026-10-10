@@ -98,6 +98,8 @@ class PDFFusionApp:
         self.thumbnails: list[tk.Frame] = []  # Liste der Thumbnail-Widgets
         self._thumbnail_cache: dict[str, ImageTk.PhotoImage] = {}  # Gerenderte Thumbnails pro Pfad
         self._temp_files: set[str] = set()  # Von paste_image angelegte Dateien
+        self._preview_path: str | None = None  # Zuletzt angezeigte Datei
+        self._preview_refresh_job: str | None = None  # Ausstehendes after() für Neu-Skalierung
         self.drag_data: dict = {  # Daten für Drag & Drop Operationen
             "index": None,
             "widget": None,
@@ -232,6 +234,8 @@ class PDFFusionApp:
             bg="white", fg=CLR_MUTED, font=("Segoe UI", 12), justify=tk.CENTER
         )
         self.preview_label.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        # Bei Größenänderung das Vorschaubild neu skalieren
+        self.preview_label.bind("<Configure>", self._on_preview_resize)
 
         self.preview_instructions = tk.Label(
             self.right_frame,
@@ -308,6 +312,7 @@ class PDFFusionApp:
     
     def _reset_preview(self) -> None:
         """Setzt die Vorschau auf den Standardzustand zurück."""
+        self._preview_path = None
         self.preview_label.config(
             image="",
             text="Ziehe Dateien hierher\noder klicke auf 'Dateien hinzufügen'"
@@ -476,6 +481,20 @@ class PDFFusionApp:
             logger.exception("Thumbnail konnte nicht erstellt werden: %s", file)
             return ImageTk.PhotoImage(_placeholder(text="?"))
 
+    def _on_preview_resize(self, event) -> None:
+        """Skaliert die Vorschau nach einer Größenänderung neu, mit kurzer Verzögerung."""
+        if self._preview_path is None:
+            return
+        if self._preview_refresh_job is not None:
+            self.root.after_cancel(self._preview_refresh_job)
+        self._preview_refresh_job = self.root.after(150, self._refresh_preview)
+
+    def _refresh_preview(self) -> None:
+        """Zeichnet die aktuelle Vorschau mit der neuen Größe neu."""
+        self._preview_refresh_job = None
+        if self._preview_path in self.files:
+            self.show_preview(self.files.index(self._preview_path))
+
     def show_preview(self, index: int) -> None:
         """Zeigt eine Vorschau der Datei an der angegebenen Position."""
         try:
@@ -483,15 +502,18 @@ class PDFFusionApp:
                 return
             
             file_path = self.files[index]
+            self._preview_path = file_path
             
             # Lade Bild (PDF oder Bilddatei)
             preview_image = self._load_preview_image(file_path)
             if preview_image is None:
                 return
             
-            # Skaliere Bild für Vorschau
-            max_preview_size = 800
-            preview_image.thumbnail((max_preview_size, max_preview_size), Image.Resampling.LANCZOS)
+            # Skaliere Bild auf den verfügbaren Platz; vor dem ersten Layout ist der Platz noch 1x1
+            available = (self.preview_label.winfo_width(), self.preview_label.winfo_height())
+            if min(available) < 2:
+                available = (800, 800)
+            preview_image.thumbnail(available, Image.Resampling.LANCZOS)
             
             # Zeige Vorschau an
             preview_photo = ImageTk.PhotoImage(preview_image)
