@@ -82,6 +82,7 @@ class PDFFusionApp:
         if HAS_DND:
             try:
                 self.root.drop_target_register(DND_FILES)
+                self.root.dnd_bind("<<DropEnter>>", self._accept_drop)
                 self.root.dnd_bind("<<Drop>>", self.drop_files)
             except Exception:
                 logger.exception("Drag & drop could not be enabled")
@@ -211,8 +212,16 @@ class PDFFusionApp:
 
     # ── File management ────────────────────────────────────────────────────────
 
-    def drop_files(self, event) -> None:
-        """Handles files added by drag & drop."""
+    def _accept_drop(self, event) -> str:
+        """Accepts a drag over the window, so the cursor shows that a drop is possible."""
+        return event.action
+
+    def drop_files(self, event) -> str:
+        """
+        Handles files added by drag & drop.
+
+        tkinterdnd2 expects the drop callback to return the action it accepted.
+        """
         added_count = 0
         dropped_files = self.root.tk.splitlist(event.data)
 
@@ -227,6 +236,7 @@ class PDFFusionApp:
             self.status_bar.configure(
                 text=t("status.dropped", count=added_count, total=total_files)
             )
+        return event.action
 
     def add_files(self) -> None:
         """Opens the file dialog and adds the selected files."""
