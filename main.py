@@ -478,7 +478,6 @@ class PDFFusionApp:
                 return
             
             file_path = self.files[index]
-            print(f"Zeige Vorschau für: {file_path}")  # Debug
             
             # Lade Bild (PDF oder Bilddatei)
             preview_image = self._load_preview_image(file_path)
@@ -494,10 +493,7 @@ class PDFFusionApp:
             self.preview_label.config(image=preview_photo, text="", compound="center")
             self.preview_label.image = preview_photo  # Referenz behalten!
             
-            print(f"Vorschau gesetzt: {preview_image.size}")  # Debug
-            
         except Exception as exc:
-            print(f"Fehler: {exc}")  # Debug
             messagebox.showerror(
                 "Vorschau-Fehler",
                 f"Datei konnte nicht geladen werden:\n{exc}"
@@ -562,7 +558,7 @@ class PDFFusionApp:
         """Wird beim Loslassen aufgerufen - zeigt Vorschau wenn nicht gedraggt wurde."""
         # Setze Farbe zurück
         if self.drag_data["widget"]:
-            self.drag_data["widget"].config(bg=CLR_DARK)
+            self.drag_data["widget"].config(bg=CLR_BG)
         
         # Zeige Vorschau nur bei Klick (nicht bei Drag)
         was_dragged = self.drag_data.get("moved", False)
