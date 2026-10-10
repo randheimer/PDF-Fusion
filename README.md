@@ -79,13 +79,13 @@ Images with transparency are placed on a white background.
 
 ### Language
 
-The interface language is read from `settings.json` in `%APPDATA%\PDF Fusion\`, for example:
+The interface uses the Windows display language if it is supported, and English otherwise. To choose a language yourself, set `language` in `settings.json` in `%APPDATA%\PDF Fusion\`, for example:
 
 ```json
 {"language": "de"}
 ```
 
-Available: `en` (default), `de`, `de-CH`. More languages are added as JSON files in `pdf_fusion/i18n/locales/`.
+Available: `en` (English, also the fallback), `de`, `de-CH`. More languages are added as JSON files in `pdf_fusion/i18n/locales/`.
 
 ## 🛠️ Technical Details
 

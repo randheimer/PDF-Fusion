@@ -4,7 +4,7 @@ import json
 import os
 from pathlib import Path
 
-from pdf_fusion.i18n import DEFAULT_LANGUAGE, available_languages
+from pdf_fusion.i18n import available_languages, detect_system_language
 
 
 def settings_path() -> Path:
@@ -30,6 +30,13 @@ def save_settings(data: dict) -> None:
 
 
 def get_language() -> str:
-    """Returns the saved language code, or English if none is saved or it is unknown."""
-    code = load_settings().get("language", DEFAULT_LANGUAGE)
-    return code if code in available_languages() else DEFAULT_LANGUAGE
+    """
+    Returns the language to use.
+
+    A saved language wins if it is supported. Otherwise the Windows display language is used,
+    and English when that is not supported either.
+    """
+    saved = load_settings().get("language")
+    if saved in available_languages():
+        return saved
+    return detect_system_language()
