@@ -138,6 +138,9 @@ class PDFFusionApp:
 
     def _build_ui(self) -> None:
         """Erstellt die gesamte Benutzeroberfläche."""
+        # Statusleiste zuerst packen, damit sie über die volle Breite läuft
+        self._build_statusbar()
+
         # Linke Seitenleiste (Buttons + Thumbnails)
         self.left_frame = tk.Frame(self.root, width=340, bg=CLR_DARK)
         self.left_frame.pack(side=tk.LEFT, fill=tk.Y)
@@ -149,7 +152,6 @@ class PDFFusionApp:
 
         self._build_sidebar()
         self._build_preview()
-        self._build_statusbar()
 
     def _build_sidebar(self) -> None:
         """Erstellt die linke Seitenleiste mit Buttons und Thumbnail-Liste."""
@@ -220,6 +222,9 @@ class PDFFusionApp:
 
         preview_box = tk.Frame(self.right_frame, bg="white", bd=1, relief=tk.SOLID)
         preview_box.pack(fill=tk.BOTH, expand=True, padx=8, pady=(10, 8))
+        # Die Größe des Vorschaubilds nicht ins Layout durchreichen, sonst verschiebt
+        # jede Vorschau die Seitenleiste und schneidet die Statusleiste ab
+        preview_box.pack_propagate(False)
 
         self.preview_label = tk.Label(
             preview_box,
