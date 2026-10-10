@@ -581,7 +581,9 @@ class PDFFusionApp:
             return
 
         self.status_bar.config(text="Erstelle PDF …")
-        self.root.update()
+        # update_idletasks() zeichnet nur neu. Mit update() würden Klicks während des Exports
+        # verarbeitet und die Dateiliste mitten in der Schleife verändert.
+        self.root.update_idletasks()
 
         try:
             pdf_writer = PdfWriter()
@@ -590,7 +592,7 @@ class PDFFusionApp:
             # Verarbeite jede Datei
             for file_number, file_path in enumerate(self.files, 1):
                 self.status_bar.config(text=f"Verarbeite Datei {file_number}/{total_files} …")
-                self.root.update()
+                self.root.update_idletasks()
                 
                 try:
                     if file_path.lower().endswith(".pdf"):
