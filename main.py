@@ -89,6 +89,7 @@ class PDFFusionApp:
         # Datenverwaltung
         self.files: list[str] = []  # Liste aller hinzugefügten Dateipfade
         self.thumbnails: list[tk.Frame] = []  # Liste der Thumbnail-Widgets
+        self._temp_files: set[str] = set()  # Von paste_image angelegte Dateien
         self.drag_data: dict = {  # Daten für Drag & Drop Operationen
             "index": None,
             "widget": None,
@@ -105,6 +106,7 @@ class PDFFusionApp:
         self.root.geometry("1200x700")
         self.root.minsize(800, 500)
         self.root.configure(bg=CLR_BG)
+        self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _setup_drag_and_drop(self) -> None:
         """Aktiviert Drag & Drop falls verfügbar."""
@@ -275,6 +277,8 @@ class PDFFusionApp:
             return
             
         if messagebox.askyesno("Bestätigung", "Alle Dateien entfernen?"):
+            for path in self.files:
+                self._discard_temp_file(path)
             self.files.clear()
             self.update_thumbnails()
             self._reset_preview()
@@ -297,6 +301,7 @@ class PDFFusionApp:
                 temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                 clipboard_image.save(temp_file)
                 
+                self._temp_files.add(temp_file)
                 self.files.append(temp_file)
                 self.update_thumbnails()
                 self.status_bar.config(
@@ -315,7 +320,7 @@ class PDFFusionApp:
         if not (0 <= index < len(self.files)):
             return
             
-        del self.files[index]
+        self._discard_temp_file(self.files.pop(index))
         self.update_thumbnails()
         self.status_bar.config(text=f"Datei entfernt  |  {len(self.files)} Datei(en)")
         
@@ -328,6 +333,19 @@ class PDFFusionApp:
             self.show_preview(0)  # Zeige erstes Bild
 
     # ── Thumbnails ─────────────────────────────────────────────────────────────
+
+    def _discard_temp_file(self, path: str) -> None:
+        """Löscht eine von paste_image angelegte Datei, sobald sie nicht mehr in der Liste steht."""
+        if path in self._temp_files:
+            self._temp_files.discard(path)
+            if os.path.exists(path):
+                os.remove(path)
+
+    def _on_close(self) -> None:
+        """Räumt die Zwischenablage-Dateien auf und schließt das Fenster."""
+        for path in list(self._temp_files):
+            self._discard_temp_file(path)
+        self.root.destroy()
 
     def update_thumbnails(self) -> None:
         """Aktualisiert die Thumbnail-Anzeige für alle Dateien."""
@@ -629,11 +647,12 @@ class PDFFusionApp:
 
         # Speichere als temporäres PDF
         temp_pdf_path = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf").name
-        image.save(temp_pdf_path, "PDF", resolution=100.0, quality=95)
-        
-        # Füge zum Output hinzu und lösche temporäre Datei
-        output.add_page(PdfReader(temp_pdf_path).pages[0])
-        os.unlink(temp_pdf_path)
+        try:
+            image.save(temp_pdf_path, "PDF", resolution=100.0, quality=95)
+            output.add_page(PdfReader(temp_pdf_path).pages[0])
+        finally:
+            # Auch bei Fehlern löschen, sonst bleibt pro gescheitertem Export eine Datei in %TEMP%
+            os.unlink(temp_pdf_path)
 
 
 if __name__ == "__main__":
