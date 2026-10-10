@@ -1,9 +1,9 @@
-"""Tests for the translation files and the settings file."""
+"""Tests for the translation files, language detection and the settings file."""
 
 import re
 
 from pdf_fusion import settings
-from pdf_fusion.i18n import available_languages, load_language, set_language, t
+from pdf_fusion.i18n import available_languages, load_language, match_language, set_language, t
 
 PLACEHOLDER = re.compile(r"\{(\w+)\}")
 
@@ -42,25 +42,53 @@ def test_unknown_key_returns_the_key_itself():
     assert t("no.such.key") == "no.such.key"
 
 
-def test_settings_default_to_english_when_missing(monkeypatch, tmp_path):
-    monkeypatch.setenv("APPDATA", str(tmp_path))
-    assert settings.get_language() == "en"
+def test_exact_locale_match_is_used():
+    assert match_language("de-CH") == "de-CH"
+    assert match_language("de_ch") == "de-CH"
 
 
-def test_saved_language_is_used(monkeypatch, tmp_path):
+def test_base_language_is_used_for_other_regions():
+    assert match_language("de-AT") == "de"
+
+
+def test_unsupported_locale_falls_back_to_english():
+    assert match_language("ja-JP") == "en"
+    assert match_language("zh-TW") == "en"
+
+
+def test_missing_locale_falls_back_to_english():
+    assert match_language(None) == "en"
+
+
+def test_windows_language_is_used_when_nothing_is_saved(monkeypatch, tmp_path):
     monkeypatch.setenv("APPDATA", str(tmp_path))
+    monkeypatch.setattr(settings, "detect_system_language", lambda: "de-CH")
+    assert settings.get_language() == "de-CH"
+
+
+def test_saved_language_beats_the_windows_language(monkeypatch, tmp_path):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    monkeypatch.setattr(settings, "detect_system_language", lambda: "de-CH")
     settings.save_settings({"language": "de"})
     assert settings.get_language() == "de"
 
 
-def test_unknown_saved_language_is_ignored(monkeypatch, tmp_path):
+def test_unknown_saved_language_uses_the_windows_language(monkeypatch, tmp_path):
     monkeypatch.setenv("APPDATA", str(tmp_path))
+    monkeypatch.setattr(settings, "detect_system_language", lambda: "de")
     settings.save_settings({"language": "xx"})
+    assert settings.get_language() == "de"
+
+
+def test_unsupported_windows_language_gives_english(monkeypatch, tmp_path):
+    monkeypatch.setenv("APPDATA", str(tmp_path))
+    monkeypatch.setattr(settings, "detect_system_language", lambda: "en")
     assert settings.get_language() == "en"
 
 
-def test_broken_settings_file_is_ignored(monkeypatch, tmp_path):
+def test_broken_settings_file_uses_the_windows_language(monkeypatch, tmp_path):
     monkeypatch.setenv("APPDATA", str(tmp_path))
+    monkeypatch.setattr(settings, "detect_system_language", lambda: "en")
     path = settings.settings_path()
     path.parent.mkdir(parents=True)
     path.write_text("{not json", encoding="utf-8")
