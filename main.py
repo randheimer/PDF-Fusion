@@ -89,6 +89,7 @@ class PDFFusionApp:
         # Datenverwaltung
         self.files: list[str] = []  # Liste aller hinzugefügten Dateipfade
         self.thumbnails: list[tk.Frame] = []  # Liste der Thumbnail-Widgets
+        self._thumbnail_cache: dict[str, ImageTk.PhotoImage] = {}  # Gerenderte Thumbnails pro Pfad
         self.drag_data: dict = {  # Daten für Drag & Drop Operationen
             "index": None,
             "widget": None,
@@ -335,6 +336,10 @@ class PDFFusionApp:
         for widget in self.thumb_frame.winfo_children():
             widget.destroy()
         self.thumbnails = []
+        # Thumbnails entfernter Dateien nicht länger im Cache halten
+        self._thumbnail_cache = {
+            path: img for path, img in self._thumbnail_cache.items() if path in self.files
+        }
         
         # Aktualisiere Statusleiste
         self._update_status_bar()
@@ -366,7 +371,7 @@ class PDFFusionApp:
         inner_frame.pack(fill=tk.BOTH, padx=2, pady=1)
 
         # Thumbnail-Bild
-        thumbnail_image = self.create_thumbnail(file_path)
+        thumbnail_image = self._get_thumbnail(file_path)
         image_label = tk.Label(inner_frame, image=thumbnail_image, bg="white")
         image_label.image = thumbnail_image  # Referenz behalten
         image_label.pack(side=tk.LEFT, padx=8, pady=5)
@@ -412,6 +417,12 @@ class PDFFusionApp:
             )
 
         return outer_frame
+
+    def _get_thumbnail(self, file_path: str) -> ImageTk.PhotoImage:
+        """Liefert das Thumbnail einer Datei; gerendert wird pro Pfad nur einmal."""
+        if file_path not in self._thumbnail_cache:
+            self._thumbnail_cache[file_path] = self.create_thumbnail(file_path)
+        return self._thumbnail_cache[file_path]
 
     def create_thumbnail(self, file: str) -> ImageTk.PhotoImage:
         try:
