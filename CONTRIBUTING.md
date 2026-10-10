@@ -26,7 +26,7 @@ cd PDF-Fusion
 ```bash
 python -m venv venv
 venv\Scripts\activate        # Linux/macOS: source venv/bin/activate
-pip install Pillow PyPDF2 PyMuPDF tkinterdnd2 pycryptodome
+pip install -r requirements.txt
 ```
 
 #### 3. Create a branch
