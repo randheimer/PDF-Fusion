@@ -13,7 +13,9 @@ from PIL import Image, ImageTk, ImageGrab, ImageDraw
 from pypdf import PdfReader
 
 from pdf_fusion.core.formats import SUPPORTED_EXTENSIONS
-from pdf_fusion.core.merge import merge_to_pdf
+from pdf_fusion.core.merge import MergeError, merge_to_pdf
+from pdf_fusion.i18n import set_language, t
+from pdf_fusion.settings import get_language
 
 # Check optional dependencies
 try:
@@ -69,6 +71,13 @@ def _placeholder(size: tuple[int, int] = (80, 80), text: str = "PDF") -> Image.I
     draw = ImageDraw.Draw(img)
     draw.text((size[0] // 2 - 10, size[1] // 2 - 5), text, fill="black")
     return img
+
+
+def _describe_error(exc: Exception) -> str:
+    """Returns a translated text for an export error."""
+    if isinstance(exc, MergeError):
+        return t("error.process_file", name=exc.file_name, cause=exc.cause)
+    return str(exc)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -172,10 +181,10 @@ class PDFFusionApp:
 
         # Action buttons
         buttons = [
-            ("➕  Add files (Ctrl+O)", CLR_GREEN, ("Segoe UI", 10, "bold"), self.add_files),
-            ("📋  Paste from clipboard (Ctrl+V)", CLR_BLUE, ("Segoe UI", 10, "bold"), self.paste_image),
-            ("🗑️  Clear all (Delete)", CLR_RED, ("Segoe UI", 10, "bold"), self.clear_all),
-            ("💾  Save as PDF (Ctrl+S)", CLR_ORANGE, ("Segoe UI", 11, "bold"), self.save_pdf),
+            (t("button.add_files"), CLR_GREEN, ("Segoe UI", 10, "bold"), self.add_files),
+            (t("button.paste"), CLR_BLUE, ("Segoe UI", 10, "bold"), self.paste_image),
+            (t("button.clear_all"), CLR_RED, ("Segoe UI", 10, "bold"), self.clear_all),
+            (t("button.save_pdf"), CLR_ORANGE, ("Segoe UI", 11, "bold"), self.save_pdf),
         ]
 
         for i, (text, color, font, cmd) in enumerate(buttons):
@@ -220,7 +229,7 @@ class PDFFusionApp:
         header = tk.Frame(self.right_frame, bg=CLR_PANEL, height=50, bd=0)
         header.pack(fill=tk.X)
         header.pack_propagate(False)
-        tk.Label(header, text="Preview", font=("Segoe UI", 13, "bold"),
+        tk.Label(header, text=t("preview.title"), font=("Segoe UI", 13, "bold"),
                  bg=CLR_PANEL, fg="white").pack(pady=12)
 
         preview_box = tk.Frame(self.right_frame, bg="white", bd=1, relief=tk.SOLID)
@@ -231,7 +240,7 @@ class PDFFusionApp:
 
         self.preview_label = tk.Label(
             preview_box,
-            text="Drop files here\nor click 'Add files'",
+            text=t("preview.empty"),
             bg="white", fg=CLR_MUTED, font=("Segoe UI", 12), justify=tk.CENTER
         )
         self.preview_label.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
@@ -240,14 +249,14 @@ class PDFFusionApp:
 
         self.preview_instructions = tk.Label(
             self.right_frame,
-            text="Click a thumbnail to preview it • Drag to reorder",
+            text=t("preview.hint"),
             bg=CLR_LIGHT, fg=CLR_MUTED, font=("Segoe UI", 10, "italic")
         )
         self.preview_instructions.pack(fill=tk.X, pady=(0, 6))
 
     def _build_statusbar(self) -> None:
         self.status_bar = tk.Label(
-            self.root, text="Ready  |  0 files",
+            self.root, text=t("status.ready", count=0),
             bg=CLR_PANEL, fg="white", anchor="w", padx=14, pady=4,
             font=("Segoe UI", 10)
         )
@@ -269,16 +278,16 @@ class PDFFusionApp:
             self.update_thumbnails()
             total_files = len(self.files)
             self.status_bar.config(
-                text=f"{added_count} file(s) added by drag & drop  |  {total_files} total"
+                text=t("status.dropped", count=added_count, total=total_files)
             )
 
     def add_files(self) -> None:
         """Opens the file dialog and adds the selected files."""
         selected_files = filedialog.askopenfilenames(
-            title="Select files",
+            title=t("dialog.select_files"),
             filetypes=[
-                ("Images & PDFs", "*.jpg *.jpeg *.png *.pdf"),
-                ("All files", "*.*")
+                (t("filetype.images_pdfs"), "*.jpg *.jpeg *.png *.pdf"),
+                (t("filetype.all_files"), "*.*")
             ]
         )
 
@@ -287,15 +296,15 @@ class PDFFusionApp:
         rejected = len(selected_files) - len(supported)
         if rejected:
             messagebox.showwarning(
-                "Unsupported file",
-                f"{rejected} file(s) have an unsupported format and were ignored."
+                t("dialog.unsupported"),
+                t("warning.unsupported", count=rejected)
             )
 
         if supported:
             self.files.extend(supported)
             self.update_thumbnails()
             self.status_bar.config(
-                text=f"{len(supported)} file(s) added  |  {len(self.files)} total"
+                text=t("status.added", count=len(supported), total=len(self.files))
             )
 
     def clear_all(self) -> None:
@@ -303,20 +312,20 @@ class PDFFusionApp:
         if not self.files:
             return
 
-        if messagebox.askyesno("Confirm", "Remove all files?"):
+        if messagebox.askyesno(t("dialog.confirm"), t("dialog.remove_all_question")):
             for path in self.files:
                 self._discard_temp_file(path)
             self.files.clear()
             self.update_thumbnails()
             self._reset_preview()
-            self.status_bar.config(text="All files removed  |  0 files")
+            self.status_bar.config(text=t("status.cleared"))
 
     def _reset_preview(self) -> None:
         """Resets the preview to its default state."""
         self._preview_path = None
         self.preview_label.config(
             image="",
-            text="Drop files here\nor click 'Add files'"
+            text=t("preview.empty")
         )
 
     def paste_image(self) -> None:
@@ -333,15 +342,15 @@ class PDFFusionApp:
                 self.files.append(temp_file)
                 self.update_thumbnails()
                 self.status_bar.config(
-                    text=f"Image pasted from clipboard  |  {len(self.files)} file(s)"
+                    text=t("status.pasted", total=len(self.files))
                 )
             else:
                 messagebox.showwarning(
-                    "Paste",
-                    "No image found in the clipboard."
+                    t("dialog.paste"),
+                    t("warning.no_clipboard_image")
                 )
         except Exception as exc:
-            messagebox.showerror("Error", f"Error while pasting: {exc}")
+            messagebox.showerror(t("dialog.error"), t("error.paste", error=exc))
 
     def delete_file(self, index: int) -> None:
         """Removes the file at the given position."""
@@ -350,7 +359,7 @@ class PDFFusionApp:
 
         self._discard_temp_file(self.files.pop(index))
         self.update_thumbnails()
-        self.status_bar.config(text=f"File removed  |  {len(self.files)} file(s)")
+        self.status_bar.config(text=t("status.removed", total=len(self.files)))
 
         # Update the preview
         if not self.files:
@@ -399,9 +408,9 @@ class PDFFusionApp:
         pdf_count = sum(1 for f in self.files if f.lower().endswith('.pdf'))
         image_count = len(self.files) - pdf_count
 
-        status_text = f"Ready  |  {len(self.files)} file(s)"
+        status_text = t("status.ready", count=len(self.files))
         if self.files:
-            status_text += f"  ({pdf_count} PDF, {image_count} image(s))"
+            status_text += "  " + t("status.breakdown", pdf=pdf_count, images=image_count)
 
         self.status_bar.config(text=status_text)
 
@@ -523,8 +532,8 @@ class PDFFusionApp:
 
         except Exception as exc:
             messagebox.showerror(
-                "Preview error",
-                f"Could not load file:\n{exc}"
+                t("dialog.preview_error"),
+                t("error.load_file", error=exc)
             )
 
     def _load_preview_image(self, file_path: str) -> Image.Image | None:
@@ -536,10 +545,10 @@ class PDFFusionApp:
                 if not HAS_PYMUPDF:
                     pages = len(PdfReader(file_path).pages)
                     self._show_preview_message(
-                        f"PDF preview requires PyMuPDF\nPage count: {pages}"
+                        t("preview.needs_pymupdf", pages=pages)
                     )
                 else:
-                    self._show_preview_message("Could not load PDF.")
+                    self._show_preview_message(t("preview.load_failed"))
                 return None
 
             return preview_image
@@ -636,7 +645,7 @@ class PDFFusionApp:
     def save_pdf(self) -> None:
         """Exports all files as one merged PDF."""
         if not self.files:
-            messagebox.showwarning("Warning", "No files added.")
+            messagebox.showwarning(t("dialog.warning"), t("warning.no_files"))
             return
 
         # Choose the output location
@@ -647,7 +656,7 @@ class PDFFusionApp:
         if not save_path:
             return
 
-        self.status_bar.config(text="Creating PDF …")
+        self.status_bar.config(text=t("status.creating_pdf"))
         # update_idletasks() only redraws. With update(), clicks during the export would
         # be processed and change the file list in the middle of the loop.
         self.root.update_idletasks()
@@ -655,35 +664,36 @@ class PDFFusionApp:
         try:
             merge_to_pdf(self.files, save_path, progress=self._report_progress)
 
-            self.status_bar.config(text=f"Ready  |  {len(self.files)} file(s)")
+            self.status_bar.config(text=t("status.ready", count=len(self.files)))
             messagebox.showinfo(
-                "Saved",
-                f"PDF saved successfully:\n{save_path}"
+                t("dialog.saved"),
+                t("info.saved", path=save_path)
             )
         except Exception as exc:
-            self.status_bar.config(text=f"Ready  |  {len(self.files)} file(s)")
+            self.status_bar.config(text=t("status.ready", count=len(self.files)))
             messagebox.showerror(
-                "Save error",
-                f"Could not create PDF:\n{exc}"
+                t("dialog.save_error"),
+                t("error.create_pdf", error=_describe_error(exc))
             )
 
     def _report_progress(self, number: int, total: int) -> None:
         """Shows the progress of the export in the status bar."""
-        self.status_bar.config(text=f"Processing file {number}/{total} …")
+        self.status_bar.config(text=t("status.processing", number=number, total=total))
         self.root.update_idletasks()
 
 
 if __name__ == "__main__":
+    set_language(get_language())
     try:
         root = TkinterDnD.Tk() if HAS_DND else tk.Tk()
         app = PDFFusionApp(root)
         root.mainloop()
     except Exception as e:
         import traceback
-        error_msg = f"A critical error occurred:\n\n{str(e)}\n\n{traceback.format_exc()}"
+        error_msg = t("error.critical", error=str(e), trace=traceback.format_exc())
         print(error_msg)
         try:
-            messagebox.showerror("Critical error", error_msg)
+            messagebox.showerror(t("dialog.critical"), error_msg)
         except:
             print("Could not show the error message")
         raise

@@ -11,6 +11,11 @@ from pdf_fusion.core.images import add_image_page
 class MergeError(Exception):
     """Raised when an input file cannot be added to the output."""
 
+    def __init__(self, file_name: str, cause: Exception) -> None:
+        super().__init__(f"Could not process '{file_name}': {cause}")
+        self.file_name = file_name
+        self.cause = cause
+
 
 def merge_to_pdf(
     paths: Sequence[str],
@@ -42,8 +47,7 @@ def merge_to_pdf(
                 add_image_page(path, writer)
         except Exception as exc:
             # Without the file name it is unclear which file stopped the export
-            name = os.path.basename(path)
-            raise MergeError(f"Could not process '{name}': {exc}") from exc
+            raise MergeError(os.path.basename(path), exc) from exc
 
     with open(output_path, "wb") as output_file:
         writer.write(output_file)

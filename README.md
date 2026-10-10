@@ -76,6 +76,16 @@ The buttons and their shortcuts:
 
 Images with transparency are placed on a white background.
 
+### Language
+
+The interface language is read from `settings.json` in `%APPDATA%\PDF Fusion\`, for example:
+
+```json
+{"language": "de"}
+```
+
+Available: `en` (default), `de`, `de-CH`. More languages are added as JSON files in `pdf_fusion/i18n/locales/`.
+
 ## 🛠️ Technical Details
 
 ### Project layout
@@ -84,6 +94,7 @@ Images with transparency are placed on a white background.
 PDF-Fusion/
 ├── main.py                # Entry point and the Tkinter user interface
 ├── pdf_fusion/core/      # Merge logic, no GUI code
+├── pdf_fusion/i18n/      # Translations: one JSON file per language
 ├── tests/                 # pytest tests for pdf_fusion
 ├── requirements.txt       # Runtime dependencies
 ├── requirements-dev.txt   # Test dependencies

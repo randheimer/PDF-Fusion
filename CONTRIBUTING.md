@@ -63,6 +63,7 @@ git push origin feature/my-new-feature
 ### Documentation
 - Add docstrings to public functions.
 - Write code comments and UI texts in English.
+- Put every user-visible text in `pdf_fusion/i18n/locales/en.json` and read it with `t("key")`. Add the same key to every other locale file. The tests fail when a key is missing.
 - Update the README when you add a feature.
 
 ### Testing
