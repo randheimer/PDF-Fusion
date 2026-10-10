@@ -262,11 +262,20 @@ class PDFFusionApp:
             ]
         )
         
-        if selected_files:
-            self.files.extend(selected_files)
+        # "Alle Dateien" lässt auch nicht unterstützte Formate durch, daher hier filtern
+        supported = [f for f in selected_files if f.lower().endswith(SUPPORTED_EXTENSIONS)]
+        rejected = len(selected_files) - len(supported)
+        if rejected:
+            messagebox.showwarning(
+                "Nicht unterstützt",
+                f"{rejected} Datei(en) haben kein unterstütztes Format und wurden ignoriert."
+            )
+
+        if supported:
+            self.files.extend(supported)
             self.update_thumbnails()
             self.status_bar.config(
-                text=f"{len(selected_files)} Datei(en) hinzugefügt  |  {len(self.files)} gesamt"
+                text=f"{len(supported)} Datei(en) hinzugefügt  |  {len(self.files)} gesamt"
             )
 
     def clear_all(self) -> None:
