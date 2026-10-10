@@ -3,7 +3,7 @@
 import os
 from collections.abc import Callable, Sequence
 
-from PyPDF2 import PdfReader, PdfWriter
+from pypdf import PdfReader, PdfWriter
 
 from pdf_fusion.core.images import add_image_page
 

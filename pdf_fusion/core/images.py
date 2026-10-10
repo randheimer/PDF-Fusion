@@ -4,7 +4,7 @@ import os
 import tempfile
 
 from PIL import Image
-from PyPDF2 import PdfReader, PdfWriter
+from pypdf import PdfReader, PdfWriter
 
 
 def add_image_page(image_path: str, writer: PdfWriter) -> None:

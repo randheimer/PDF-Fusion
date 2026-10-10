@@ -46,10 +46,9 @@ pip install -r requirements.txt
 | Package | Required | Purpose |
 |---------|----------|---------|
 | `Pillow` | yes | Image handling and PDF page creation for images |
-| `PyPDF2` | yes | Reading and merging PDF pages |
+| `pypdf[crypto]` | yes | Reading and merging PDF pages. The `crypto` extra adds AES decryption. |
 | `PyMuPDF` (1.24.3 or newer) | optional | PDF thumbnails and previews. Older releases only provide the `fitz` module name, which this version does not import. |
 | `tkinterdnd2` | optional | Drag & drop from Explorer |
-| `pycryptodome` | optional | Needed by PyPDF2 for AES-encrypted PDFs |
 
 ### Step 3: Start the application
 
@@ -136,10 +135,10 @@ pip install tkinterdnd2
 ```
 
 ### An encrypted PDF cannot be exported
-PDFs that use AES encryption need `pycryptodome`:
+PDFs that use AES encryption need the `crypto` extra of pypdf:
 
 ```bash
-pip install pycryptodome
+pip install "pypdf[crypto]"
 ```
 
 PDFs that require a password to open cannot be merged, because the app does not ask for one.
@@ -173,7 +172,7 @@ Made with ❤️ for the open-source community.
 ## 🙏 Acknowledgements
 
 - [Pillow](https://python-pillow.org/): Python Imaging Library
-- [PyPDF2](https://pypdf2.readthedocs.io/): PDF toolkit
+- [pypdf](https://pypdf.readthedocs.io/): PDF toolkit
 - [PyMuPDF](https://pymupdf.readthedocs.io/): PDF rendering
 - [tkinterdnd2](https://github.com/pmgagne/tkinterdnd2): drag & drop support
 

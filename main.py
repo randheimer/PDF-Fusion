@@ -10,7 +10,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 
 from PIL import Image, ImageTk, ImageGrab, ImageDraw
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 
 from pdf_fusion.core.formats import SUPPORTED_EXTENSIONS
 from pdf_fusion.core.merge import merge_to_pdf
