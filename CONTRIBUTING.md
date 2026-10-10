@@ -26,7 +26,7 @@ cd PDF-Fusion
 ```bash
 python -m venv venv
 venv\Scripts\activate        # Linux/macOS: source venv/bin/activate
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
 
 #### 3. Create a branch
@@ -69,6 +69,7 @@ git push origin feature/my-new-feature
 - Test on Windows, the platform the project is developed on. Testers on Linux and macOS are welcome.
 - Test with and without the optional dependencies.
 - Test with files of different sizes and formats.
+- Run `python -m pytest` before you open a pull request. CI runs the same tests on Python 3.10 to 3.12.
 
 ## 🐛 Known issues
 
