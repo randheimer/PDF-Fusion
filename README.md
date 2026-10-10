@@ -20,17 +20,9 @@ Läuft komplett lokal auf Ihrem Rechner (ohne Cloud, lokal wie localhost), speic
 
 ## 📸 Screenshots
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  📄 PDF Fusion                                          │
-├──────────────┬──────────────────────────────────────────┤
-│              │                                          │
-│  [Buttons]   │           Vorschau-Bereich               │
-│              │                                          │
-│  Thumbnails  │                                          │
-│              │                                          │
-└──────────────┴──────────────────────────────────────────┘
-```
+![Hauptfenster mit Dateiliste](docs/screenshots/main-window.png)
+
+![Vorschau eines Bildes](docs/screenshots/preview.png)
 
 ## 🚀 Installation
 
