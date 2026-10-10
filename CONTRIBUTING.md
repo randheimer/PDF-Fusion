@@ -1,93 +1,93 @@
-# 🤝 Beitragen zu PDF Fusion
+# 🤝 Contributing to PDF Fusion
 
-Vielen Dank für dein Interesse, zu PDF Fusion beizutragen! Wir freuen uns über jeden Beitrag.
+Thanks for your interest in PDF Fusion. Every contribution is welcome.
 
-## 🚀 Wie kann ich beitragen?
+## 🚀 How can I contribute?
 
-### Fehler melden
-- Überprüfe zuerst, ob der Fehler bereits gemeldet wurde
-- Erstelle ein neues Issue mit einer klaren Beschreibung
-- Füge Screenshots hinzu, wenn möglich
-- Beschreibe die Schritte zur Reproduktion
+### Reporting bugs
+- Check first whether the bug is already in the [issue list](https://github.com/randheimer/PDF-Fusion/issues).
+- Open a new issue with a clear description.
+- Add screenshots if possible.
+- Describe the steps to reproduce the problem, and include your Windows and Python versions.
 
-### Features vorschlagen
-- Öffne ein Issue mit dem Tag "enhancement"
-- Beschreibe das gewünschte Feature detailliert
-- Erkläre, warum es nützlich wäre
+### Suggesting features
+- Open an issue with the label `enhancement`.
+- Describe the feature in detail and explain why it would be useful.
 
-### Code beitragen
+### Contributing code
 
-#### 1. Fork & Clone
+#### 1. Fork and clone
 ```bash
-git clone https://github.com/randheimer/pdf-fusion.git
-cd pdf-fusion
+git clone https://github.com/<your-username>/PDF-Fusion.git
+cd PDF-Fusion
 ```
 
-#### 2. Entwicklungsumgebung einrichten
+#### 2. Set up a development environment
 ```bash
 python -m venv venv
-source venv/bin/activate  # Windows: venv\Scripts\activate
-pip install -r requirements.txt
+venv\Scripts\activate        # Linux/macOS: source venv/bin/activate
+pip install Pillow PyPDF2 PyMuPDF tkinterdnd2 pycryptodome
 ```
 
-#### 3. Branch erstellen
+#### 3. Create a branch
+Use a short, descriptive name, for example `fix/export-error` or `feature/dark-mode`.
 ```bash
-git checkout -b feature/mein-neues-feature
+git checkout -b feature/my-new-feature
 ```
 
-#### 4. Änderungen vornehmen
-- Halte dich an den bestehenden Code-Stil
-- Füge Kommentare für komplexe Logik hinzu
-- Teste deine Änderungen gründlich
+#### 4. Make your changes
+- Follow the style of the surrounding code.
+- Add comments for complex logic.
+- Test your changes thoroughly.
 
-#### 5. Commit & Push
+#### 5. Commit and push
 ```bash
 git add .
-git commit -m "Beschreibung der Änderungen"
-git push origin feature/mein-neues-feature
+git commit -m "Describe your change"
+git push origin feature/my-new-feature
 ```
 
-#### 6. Pull Request erstellen
-- Beschreibe deine Änderungen klar
-- Verlinke relevante Issues
-- Warte auf Review
+#### 6. Open a pull request
+- Describe your changes clearly.
+- Link related issues, for example `Closes randheimer/PDF-Fusion#12`.
+- Wait for a review.
 
-## 📝 Code-Richtlinien
+## 📝 Code guidelines
 
-### Stil
-- Verwende Type Hints wo möglich
-- Folge PEP 8 Konventionen
-- Maximale Zeilenlänge: 100 Zeichen
-- Verwende aussagekräftige Variablennamen
+### Style
+- Use type hints where possible.
+- Follow PEP 8.
+- Keep lines to 100 characters or fewer.
+- Use descriptive variable names.
 
-### Dokumentation
-- Docstrings für alle öffentlichen Funktionen
-- Kommentare auf Deutsch (wie der Rest des Projekts)
-- Update die README bei neuen Features
+### Documentation
+- Add docstrings to public functions.
+- Code comments and UI texts are currently in German. Keep new comments consistent with the code around them.
+- Update the README when you add a feature.
 
 ### Testing
-- Teste auf Windows, Linux und macOS (wenn möglich)
-- Teste mit und ohne optionale Dependencies
-- Teste mit verschiedenen Dateigrößen und -formaten
+- Test on Windows, the platform the project is developed on. Testers on Linux and macOS are welcome.
+- Test with and without the optional dependencies.
+- Test with files of different sizes and formats.
 
-## 🐛 Bekannte Probleme
+## 🐛 Known issues
 
-Siehe [Issues](https://github.com/randheimer/pdf-fusion/issues) für aktuelle Probleme und geplante Features.
+See the [issue list](https://github.com/randheimer/PDF-Fusion/issues) for current problems and planned features.
 
-## 💡 Ideen für Beiträge
+## 💡 Ideas for contributions
 
-- Übersetzungen in andere Sprachen
-- Zusätzliche Dateiformate (TIFF, BMP, etc.)
-- PDF-Bearbeitungsfunktionen (Drehen, Zuschneiden)
-- Batch-Verarbeitung
-- Kommandozeilen-Interface
-- Unit Tests
-- Performance-Optimierungen
+- Translations into other languages
+- Additional file formats (TIFF, BMP, etc.)
+- PDF editing features (rotate, crop)
+- Batch processing
+- A command-line interface
+- Unit tests
+- Performance improvements
 
-## 📧 Kontakt
+## 📧 Contact
 
-Bei Fragen kannst du ein Issue öffnen oder direkt Kontakt aufnehmen.
+Open an issue, or contact the maintainer via GitHub.
 
 ---
 
-Danke, dass du PDF Fusion besser machst! 🎉
+Thanks for helping make PDF Fusion better! 🎉

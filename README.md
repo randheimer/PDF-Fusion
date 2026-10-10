@@ -1,190 +1,184 @@
 # 📄 PDF Fusion
 
-Eine moderne, benutzerfreundliche Desktop-Anwendung zum Zusammenführen von PDFs und Bildern in ein einziges PDF-Dokument.
+A desktop app for Windows that merges PDFs and images into a single PDF document.
 
-Läuft komplett lokal auf Ihrem Rechner (ohne Cloud, lokal wie localhost), speichert niemals Daten auf fremden Servern.
+Everything runs locally on your machine. No files are uploaded anywhere.
 
-![Python Version](https://img.shields.io/badge/python-3.7+-blue.svg)
+![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
-![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)
+![Platform](https://img.shields.io/badge/platform-Windows-lightgrey.svg)
 
 ## ✨ Features
 
-- **📁 Mehrere Dateiformate**: Unterstützt PDF, JPG, JPEG und PNG
-- **🖱️ Drag & Drop**: Intuitive Bedienung durch Ziehen und Ablegen von Dateien
-- **🔄 Neuanordnung**: Einfaches Umordnen der Dateien per Drag & Drop
-- **👁️ Live-Vorschau**: Sofortige Vorschau der ausgewählten Dateien
-- **📋 Zwischenablage**: Bilder direkt aus der Zwischenablage einfügen
-- **🎨 Moderne UI**: Ansprechendes, dunkles Design mit klarer Struktur
-- **⚡ Schnell & Effizient**: Optimierte Verarbeitung auch großer Dateien
+- **📁 Supported input formats:** PDF, JPG, JPEG and PNG
+- **🖱️ Drag & drop:** drop files onto the window (requires `tkinterdnd2`)
+- **🔄 Reordering:** drag thumbnails to change the order of the output
+- **👁️ Preview:** click a thumbnail to see a larger preview
+- **📋 Clipboard:** paste an image straight from the clipboard
+- **🎨 Two-panel layout:** thumbnails on the left, preview on the right
 
 ## 📸 Screenshots
 
-![Hauptfenster mit Dateiliste](docs/screenshots/main-window.png)
+![Main window with the file list](docs/screenshots/main-window.png)
 
-![Vorschau eines Bildes](docs/screenshots/preview.png)
+![Preview of an image](docs/screenshots/preview.png)
 
 ## 🚀 Installation
 
-### Voraussetzungen
+### Requirements
 
-- Python 3.7 oder höher
-- pip (Python Package Manager)
+- Python 3.10 or newer (the code uses `X | None` type annotations)
+- pip
 
-### Schritt 1: Repository klonen
-
-```bash
-git clone https://github.com/randheimer/pdf-fusion.git
-cd pdf-fusion
-```
-
-### Schritt 2: Abhängigkeiten installieren
+### Step 1: Clone the repository
 
 ```bash
-pip install -r requirements.txt
+git clone https://github.com/randheimer/PDF-Fusion.git
+cd PDF-Fusion
 ```
 
-### Schritt 3: Anwendung starten
+### Step 2: Install the dependencies
+
+```bash
+pip install Pillow PyPDF2 PyMuPDF tkinterdnd2 pycryptodome
+```
+
+| Package | Required | Purpose |
+|---------|----------|---------|
+| `Pillow` | yes | Image handling and PDF page creation for images |
+| `PyPDF2` | yes | Reading and merging PDF pages |
+| `PyMuPDF` (1.24.3 or newer) | optional | PDF thumbnails and previews. Older releases only provide the `fitz` module name, which this version does not import. |
+| `tkinterdnd2` | optional | Drag & drop from Explorer |
+| `pycryptodome` | optional | Needed by PyPDF2 for AES-encrypted PDFs |
+
+### Step 3: Start the application
 
 ```bash
 python main.py
 ```
 
-## 📦 Abhängigkeiten
+## 💻 Usage
 
-### Erforderlich
-- `Pillow` - Bildverarbeitung
-- `PyPDF2` - PDF-Manipulation
+The button labels in the app are in German. The table maps them to what they do:
 
-### Optional (für erweiterte Funktionen)
-- `PyMuPDF` (fitz) - Verbesserte PDF-Vorschau und -Rendering
-- `tkinterdnd2` - Drag & Drop von externen Dateien
+| Button (label in the app) | Shortcut | Action |
+|---------------------------|----------|--------|
+| ➕ Dateien hinzufügen | Ctrl+O | Add PDF and image files |
+| 📋 Aus Zwischenablage | Ctrl+V | Add an image from the clipboard |
+| 🗑️ Alle löschen | Delete | Remove all files (asks for confirmation) |
+| 💾 Als PDF speichern | Ctrl+S | Export everything as one PDF |
+
+1. **Add files:** click "Dateien hinzufügen", or drag files into the window.
+2. **Change the order:** drag thumbnails up or down. The export follows the order shown.
+3. **Preview:** click a thumbnail. A PDF shows its first page; an image is shown in full. Previews are scaled to fit, to at most 800 px.
+4. **Remove a file:** click the red ✕ on its thumbnail.
+5. **Paste an image:** copy an image, then click "Aus Zwischenablage".
+6. **Export:** click "Als PDF speichern" and choose the output file. Every page of every PDF is kept. Each image becomes one page.
+
+Images with transparency are placed on a white background.
+
+## 🛠️ Technical Details
+
+### Project layout
+
+```
+PDF-Fusion/
+├── main.py              # The application (single file)
+├── README.md            # This file
+├── CONTRIBUTING.md      # Contribution guidelines
+├── LICENSE              # MIT license
+└── docs/screenshots/    # Screenshots used in this README
+```
+
+### Main component
+
+- **`PDFFusionApp`** (`main.py`): the Tkinter application.
+  - Builds the window and the UI.
+  - Manages the file list, drag & drop reordering and removal.
+  - Creates thumbnails and previews.
+  - Exports the result with PyPDF2 and Pillow.
+
+### Supported formats
+
+| Format | Input | Output | Preview |
+|--------|-------|--------|---------|
+| PDF    | ✅ | ✅ all pages | ✅ with PyMuPDF |
+| JPG    | ✅ | ✅ one page per image | ✅ |
+| JPEG   | ✅ | ✅ one page per image | ✅ |
+| PNG    | ✅ | ✅ one page per image | ✅ |
+
+The output is always a single PDF. Images are saved as pages at a resolution of 100 DPI.
+
+### Defaults
+
+- Window size: 1200×700 px, minimum 800×500 px
+- Thumbnail size: 80×80 px
+- Maximum preview size: 800 px
+
+## 🐛 Troubleshooting
+
+### PDF thumbnails show a placeholder, and clicking a PDF only shows its page count
+PyMuPDF is missing or older than 1.24.3. Install a current version:
 
 ```bash
-# Alle Abhängigkeiten installieren
-pip install Pillow PyPDF2 PyMuPDF tkinterdnd2
+pip install --upgrade PyMuPDF
 ```
 
-## 💻 Verwendung
+### Drag & drop does not work
+Install `tkinterdnd2`:
 
-1. **Dateien hinzufügen**
-   - Klicken Sie auf "➕ Dateien hinzufügen"
-   - Oder ziehen Sie Dateien direkt in die Anwendung (wenn tkinterdnd2 installiert ist)
-
-2. **Reihenfolge ändern**
-   - Klicken und ziehen Sie Thumbnails, um die Reihenfolge zu ändern
-
-3. **Vorschau anzeigen**
-   - Doppelklicken Sie auf ein Thumbnail für eine größere Vorschau
-
-4. **Aus Zwischenablage einfügen**
-   - Kopieren Sie ein Bild
-   - Klicken Sie auf "📋 Paste Clipboard"
-
-5. **PDF erstellen**
-   - Klicken Sie auf "💾 Als PDF speichern"
-   - Wählen Sie den Speicherort
-
-## 🛠️ Technische Details
-
-### Architektur
-
-```
-PDF Fusion
-│
-├── main.py                 # Hauptanwendung
-├── requirements.txt        # Python-Abhängigkeiten
-├── README.md              # Dokumentation
-└── LICENSE                # MIT-Lizenz
-```
-
-### Hauptkomponenten
-
-- **PDFMergerApp**: Hauptklasse der Anwendung
-  - GUI-Verwaltung mit Tkinter
-  - Datei-Management
-  - Thumbnail-Generierung
-  - PDF-Export-Funktionalität
-
-### Unterstützte Formate
-
-| Format | Lesen | Schreiben | Vorschau |
-|--------|-------|-----------|----------|
-| PDF    | ✅    | ✅        | ✅       |
-| JPG    | ✅    | ✅        | ✅       |
-| JPEG   | ✅    | ✅        | ✅       |
-| PNG    | ✅    | ✅        | ✅       |
-
-## 🔧 Konfiguration
-
-Die Anwendung verwendet folgende Standard-Einstellungen:
-
-- **Fenstergröße**: 1200x700 Pixel
-- **Minimale Größe**: 800x500 Pixel
-- **Thumbnail-Größe**: 80x80 Pixel
-- **Vorschau-Größe**: 600x600 Pixel
-- **PDF-Qualität**: 95%
-- **PDF-Auflösung**: 100 DPI
-
-## 🐛 Fehlerbehebung
-
-### PyMuPDF nicht installiert
-Wenn PyMuPDF nicht verfügbar ist, werden PDF-Vorschauen als einfache Platzhalter angezeigt. Installieren Sie PyMuPDF für bessere PDF-Unterstützung:
-```bash
-pip install PyMuPDF
-```
-
-### Drag & Drop funktioniert nicht
-Stellen Sie sicher, dass tkinterdnd2 installiert ist:
 ```bash
 pip install tkinterdnd2
 ```
 
-### Bilder werden nicht korrekt konvertiert
-Die Anwendung konvertiert automatisch RGBA/LA/P-Bilder zu RGB. Bei Problemen überprüfen Sie das Bildformat.
+### An encrypted PDF cannot be exported
+PDFs that use AES encryption need `pycryptodome`:
 
-## 🤝 Beitragen
+```bash
+pip install pycryptodome
+```
 
-Beiträge sind willkommen! So können Sie helfen:
+PDFs that require a password to open cannot be merged, because the app does not ask for one.
 
-1. Forken Sie das Repository
-2. Erstellen Sie einen Feature-Branch (`git checkout -b feature/AmazingFeature`)
-3. Committen Sie Ihre Änderungen (`git commit -m 'Add some AmazingFeature'`)
-4. Pushen Sie zum Branch (`git push origin feature/AmazingFeature`)
-5. Öffnen Sie einen Pull Request
+### Images do not look right in the PDF
+RGBA, LA and palette (P) images are converted to RGB on a white background. Check the source image if the result looks wrong.
+
+## 🤝 Contributing
+
+Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to report bugs, suggest features and submit pull requests.
 
 ## 📝 Roadmap
 
-- [ ] Unterstützung für weitere Bildformate (TIFF, BMP, GIF)
-- [ ] PDF-Seiten einzeln bearbeiten
-- [ ] Wasserzeichen hinzufügen
-- [ ] Batch-Verarbeitung
-- [ ] Kommandozeilen-Interface
-- [ ] Portable .exe Version
-- [ ] Mehrsprachige Unterstützung
-- [ ] Dunkler/Heller Modus-Umschalter
+- [ ] Support for more image formats (TIFF, BMP, GIF)
+- [ ] Edit individual PDF pages
+- [ ] Add watermarks
+- [ ] Batch processing
+- [ ] Command-line interface
+- [ ] Portable .exe version
+- [ ] Multilingual interface
+- [ ] Light/dark mode toggle
 
-## 📄 Lizenz
+## 📄 License
 
-Dieses Projekt ist unter der MIT-Lizenz lizenziert - siehe [LICENSE](LICENSE) Datei für Details.
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
 
-## 👤 Autor
+## 👤 Author
 
-Erstellt mit ❤️ für die Open-Source-Community
+Made with ❤️ for the open-source community.
 
-## 🙏 Danksagungen
+## 🙏 Acknowledgements
 
-- [Pillow](https://python-pillow.org/) - Python Imaging Library
-- [PyPDF2](https://pypdf2.readthedocs.io/) - PDF-Toolkit
-- [PyMuPDF](https://pymupdf.readthedocs.io/) - PDF-Rendering
-- [tkinterdnd2](https://github.com/pmgagne/tkinterdnd2) - Drag & Drop Support
+- [Pillow](https://python-pillow.org/): Python Imaging Library
+- [PyPDF2](https://pypdf2.readthedocs.io/): PDF toolkit
+- [PyMuPDF](https://pymupdf.readthedocs.io/): PDF rendering
+- [tkinterdnd2](https://github.com/pmgagne/tkinterdnd2): drag & drop support
 
 ## 📞 Support
 
-Bei Fragen oder Problemen:
-- Öffnen Sie ein [Issue](https://github.com/randheimer/pdf-fusion/issues)
-- Kontaktieren Sie mich über GitHub
+If you have questions or run into problems:
+- [Open an issue](https://github.com/randheimer/PDF-Fusion/issues)
+- Contact the maintainer via GitHub
 
 ---
 
-**Hinweis**: Dieses Projekt befindet sich in aktiver Entwicklung. Feedback und Vorschläge sind willkommen!
+**Note:** This project is under active development. Feedback and suggestions are welcome.
