@@ -4,7 +4,7 @@ Eine moderne, benutzerfreundliche Desktop-Anwendung zum Zusammenführen von PDFs
 
 Läuft komplett lokal auf Ihrem Rechner (ohne Cloud, lokal wie localhost), speichert niemals Daten auf fremden Servern.
 
-![Python Version](https://img.shields.io/badge/python-3.7+-blue.svg)
+![Python Version](https://img.shields.io/badge/python-3.10+-blue.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Platform](https://img.shields.io/badge/platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey.svg)
 
@@ -28,7 +28,7 @@ Läuft komplett lokal auf Ihrem Rechner (ohne Cloud, lokal wie localhost), speic
 
 ### Voraussetzungen
 
-- Python 3.7 oder höher
+- Python 3.10 oder höher
 - pip (Python Package Manager)
 
 ### Schritt 1: Repository klonen
@@ -54,10 +54,10 @@ python main.py
 
 ### Erforderlich
 - `Pillow` - Bildverarbeitung
-- `PyPDF2` - PDF-Manipulation
+- `PyPDF2` - PDF-Manipulation (für AES-verschlüsselte PDFs ohne Benutzerpasswort zusätzlich `pycryptodome`)
 
 ### Optional (für erweiterte Funktionen)
-- `PyMuPDF` (fitz) - Verbesserte PDF-Vorschau und -Rendering
+- `PyMuPDF` (ab 1.24.3) - Verbesserte PDF-Vorschau und -Rendering
 - `tkinterdnd2` - Drag & Drop von externen Dateien
 
 ```bash
