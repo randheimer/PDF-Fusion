@@ -1,0 +1,8 @@
+# Pflicht
+Pillow>=9.1
+PyPDF2>=3.0
+pycryptodome  # PyPDF2 braucht es für AES-verschlüsselte PDFs ohne Benutzerpasswort (z. B. nur Sperren)
+
+# Optional: PDF-Vorschau (PyMuPDF ab 1.24.3 stellt den Namen "pymupdf" bereit) und Drag & Drop
+PyMuPDF>=1.24.3
+tkinterdnd2

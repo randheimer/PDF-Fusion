@@ -3,6 +3,7 @@ PDF Fusion - Ein moderner PDF-Editor für Windows
 Ermöglicht das Zusammenführen von PDFs und Bildern zu einem PDF-Dokument.
 """
 
+import logging
 import os
 import tempfile
 import tkinter as tk
@@ -14,15 +15,20 @@ from PyPDF2 import PdfReader, PdfWriter
 # Optionale Abhängigkeiten prüfen
 try:
     import pymupdf
-    HAS_PYMUPDF = True
 except ImportError:
-    HAS_PYMUPDF = False
+    try:
+        import fitz as pymupdf  # PyMuPDF vor 1.24.3 stellt nur diesen Namen bereit
+    except ImportError:
+        pymupdf = None
+HAS_PYMUPDF = pymupdf is not None
 
 try:
     from tkinterdnd2 import DND_FILES, TkinterDnD
     HAS_DND = True
 except ImportError:
     HAS_DND = False
+
+logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -48,19 +54,20 @@ SUPPORTED_EXTENSIONS = (".pdf", ".jpg", ".jpeg", ".png")
 # HILFSFUNKTIONEN
 # ═══════════════════════════════════════════════════════════════════════════
 
-def _pdf_placeholder(size: tuple[int, int] = (80, 80)) -> Image.Image:
+def _placeholder(size: tuple[int, int] = (80, 80), text: str = "PDF") -> Image.Image:
     """
     Erstellt ein graues Platzhalterbild für PDFs ohne Vorschau.
     
     Args:
         size: Tuple mit (Breite, Höhe) des Platzhalterbildes
+        text: Beschriftung des Platzhalters
         
     Returns:
-        PIL Image Objekt mit grauem Hintergrund und "PDF" Text
+        PIL Image Objekt mit grauem Hintergrund und der Beschriftung
     """
     img = Image.new("RGB", size, "lightgray")
     draw = ImageDraw.Draw(img)
-    draw.text((size[0] // 2 - 10, size[1] // 2 - 5), "PDF", fill="black")
+    draw.text((size[0] // 2 - 10, size[1] // 2 - 5), text, fill="black")
     return img
 
 
@@ -89,6 +96,10 @@ class PDFFusionApp:
         # Datenverwaltung
         self.files: list[str] = []  # Liste aller hinzugefügten Dateipfade
         self.thumbnails: list[tk.Frame] = []  # Liste der Thumbnail-Widgets
+        self._thumbnail_cache: dict[str, ImageTk.PhotoImage] = {}  # Gerenderte Thumbnails pro Pfad
+        self._temp_files: set[str] = set()  # Von paste_image angelegte Dateien
+        self._preview_path: str | None = None  # Zuletzt angezeigte Datei
+        self._preview_refresh_job: str | None = None  # Ausstehendes after() für Neu-Skalierung
         self.drag_data: dict = {  # Daten für Drag & Drop Operationen
             "index": None,
             "widget": None,
@@ -105,6 +116,7 @@ class PDFFusionApp:
         self.root.geometry("1200x700")
         self.root.minsize(800, 500)
         self.root.configure(bg=CLR_BG)
+        self.root.protocol("WM_DELETE_WINDOW", self._on_close)
 
     def _setup_drag_and_drop(self) -> None:
         """Aktiviert Drag & Drop falls verfügbar."""
@@ -128,6 +140,9 @@ class PDFFusionApp:
 
     def _build_ui(self) -> None:
         """Erstellt die gesamte Benutzeroberfläche."""
+        # Statusleiste zuerst packen, damit sie über die volle Breite läuft
+        self._build_statusbar()
+
         # Linke Seitenleiste (Buttons + Thumbnails)
         self.left_frame = tk.Frame(self.root, width=340, bg=CLR_DARK)
         self.left_frame.pack(side=tk.LEFT, fill=tk.Y)
@@ -139,7 +154,6 @@ class PDFFusionApp:
 
         self._build_sidebar()
         self._build_preview()
-        self._build_statusbar()
 
     def _build_sidebar(self) -> None:
         """Erstellt die linke Seitenleiste mit Buttons und Thumbnail-Liste."""
@@ -210,6 +224,9 @@ class PDFFusionApp:
 
         preview_box = tk.Frame(self.right_frame, bg="white", bd=1, relief=tk.SOLID)
         preview_box.pack(fill=tk.BOTH, expand=True, padx=8, pady=(10, 8))
+        # Die Größe des Vorschaubilds nicht ins Layout durchreichen, sonst verschiebt
+        # jede Vorschau die Seitenleiste und schneidet die Statusleiste ab
+        preview_box.pack_propagate(False)
 
         self.preview_label = tk.Label(
             preview_box,
@@ -217,6 +234,8 @@ class PDFFusionApp:
             bg="white", fg=CLR_MUTED, font=("Segoe UI", 12), justify=tk.CENTER
         )
         self.preview_label.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
+        # Bei Größenänderung das Vorschaubild neu skalieren
+        self.preview_label.bind("<Configure>", self._on_preview_resize)
 
         self.preview_instructions = tk.Label(
             self.right_frame,
@@ -262,11 +281,20 @@ class PDFFusionApp:
             ]
         )
         
-        if selected_files:
-            self.files.extend(selected_files)
+        # "Alle Dateien" lässt auch nicht unterstützte Formate durch, daher hier filtern
+        supported = [f for f in selected_files if f.lower().endswith(SUPPORTED_EXTENSIONS)]
+        rejected = len(selected_files) - len(supported)
+        if rejected:
+            messagebox.showwarning(
+                "Nicht unterstützt",
+                f"{rejected} Datei(en) haben kein unterstütztes Format und wurden ignoriert."
+            )
+
+        if supported:
+            self.files.extend(supported)
             self.update_thumbnails()
             self.status_bar.config(
-                text=f"{len(selected_files)} Datei(en) hinzugefügt  |  {len(self.files)} gesamt"
+                text=f"{len(supported)} Datei(en) hinzugefügt  |  {len(self.files)} gesamt"
             )
 
     def clear_all(self) -> None:
@@ -275,6 +303,8 @@ class PDFFusionApp:
             return
             
         if messagebox.askyesno("Bestätigung", "Alle Dateien entfernen?"):
+            for path in self.files:
+                self._discard_temp_file(path)
             self.files.clear()
             self.update_thumbnails()
             self._reset_preview()
@@ -282,6 +312,7 @@ class PDFFusionApp:
     
     def _reset_preview(self) -> None:
         """Setzt die Vorschau auf den Standardzustand zurück."""
+        self._preview_path = None
         self.preview_label.config(
             image="",
             text="Ziehe Dateien hierher\noder klicke auf 'Dateien hinzufügen'"
@@ -297,6 +328,7 @@ class PDFFusionApp:
                 temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".png").name
                 clipboard_image.save(temp_file)
                 
+                self._temp_files.add(temp_file)
                 self.files.append(temp_file)
                 self.update_thumbnails()
                 self.status_bar.config(
@@ -315,7 +347,7 @@ class PDFFusionApp:
         if not (0 <= index < len(self.files)):
             return
             
-        del self.files[index]
+        self._discard_temp_file(self.files.pop(index))
         self.update_thumbnails()
         self.status_bar.config(text=f"Datei entfernt  |  {len(self.files)} Datei(en)")
         
@@ -329,12 +361,29 @@ class PDFFusionApp:
 
     # ── Thumbnails ─────────────────────────────────────────────────────────────
 
+    def _discard_temp_file(self, path: str) -> None:
+        """Löscht eine von paste_image angelegte Datei, sobald sie nicht mehr in der Liste steht."""
+        if path in self._temp_files:
+            self._temp_files.discard(path)
+            if os.path.exists(path):
+                os.remove(path)
+
+    def _on_close(self) -> None:
+        """Räumt die Zwischenablage-Dateien auf und schließt das Fenster."""
+        for path in list(self._temp_files):
+            self._discard_temp_file(path)
+        self.root.destroy()
+
     def update_thumbnails(self) -> None:
         """Aktualisiert die Thumbnail-Anzeige für alle Dateien."""
         # Lösche alte Thumbnails
         for widget in self.thumb_frame.winfo_children():
             widget.destroy()
         self.thumbnails = []
+        # Thumbnails entfernter Dateien nicht länger im Cache halten
+        self._thumbnail_cache = {
+            path: img for path, img in self._thumbnail_cache.items() if path in self.files
+        }
         
         # Aktualisiere Statusleiste
         self._update_status_bar()
@@ -366,7 +415,7 @@ class PDFFusionApp:
         inner_frame.pack(fill=tk.BOTH, padx=2, pady=1)
 
         # Thumbnail-Bild
-        thumbnail_image = self.create_thumbnail(file_path)
+        thumbnail_image = self._get_thumbnail(file_path)
         image_label = tk.Label(inner_frame, image=thumbnail_image, bg="white")
         image_label.image = thumbnail_image  # Referenz behalten
         image_label.pack(side=tk.LEFT, padx=8, pady=5)
@@ -413,16 +462,38 @@ class PDFFusionApp:
 
         return outer_frame
 
+    def _get_thumbnail(self, file_path: str) -> ImageTk.PhotoImage:
+        """Liefert das Thumbnail einer Datei; gerendert wird pro Pfad nur einmal."""
+        if file_path not in self._thumbnail_cache:
+            self._thumbnail_cache[file_path] = self.create_thumbnail(file_path)
+        return self._thumbnail_cache[file_path]
+
     def create_thumbnail(self, file: str) -> ImageTk.PhotoImage:
         try:
             if file.lower().endswith(".pdf"):
-                img = self._render_pdf_page(file, scale=0.3) or _pdf_placeholder()
+                img = self._render_pdf_page(file, scale=0.3) or _placeholder()
             else:
                 img = Image.open(file)
             img.thumbnail((80, 80))
             return ImageTk.PhotoImage(img)
         except Exception:
-            return ImageTk.PhotoImage(_pdf_placeholder())
+            # Unlesbare Datei: eigener Platzhalter statt "PDF", damit der Fehler sichtbar ist
+            logger.exception("Thumbnail konnte nicht erstellt werden: %s", file)
+            return ImageTk.PhotoImage(_placeholder(text="?"))
+
+    def _on_preview_resize(self, event) -> None:
+        """Skaliert die Vorschau nach einer Größenänderung neu, mit kurzer Verzögerung."""
+        if self._preview_path is None:
+            return
+        if self._preview_refresh_job is not None:
+            self.root.after_cancel(self._preview_refresh_job)
+        self._preview_refresh_job = self.root.after(150, self._refresh_preview)
+
+    def _refresh_preview(self) -> None:
+        """Zeichnet die aktuelle Vorschau mit der neuen Größe neu."""
+        self._preview_refresh_job = None
+        if self._preview_path in self.files:
+            self.show_preview(self.files.index(self._preview_path))
 
     def show_preview(self, index: int) -> None:
         """Zeigt eine Vorschau der Datei an der angegebenen Position."""
@@ -431,26 +502,25 @@ class PDFFusionApp:
                 return
             
             file_path = self.files[index]
-            print(f"Zeige Vorschau für: {file_path}")  # Debug
+            self._preview_path = file_path
             
             # Lade Bild (PDF oder Bilddatei)
             preview_image = self._load_preview_image(file_path)
             if preview_image is None:
                 return
             
-            # Skaliere Bild für Vorschau
-            max_preview_size = 800
-            preview_image.thumbnail((max_preview_size, max_preview_size), Image.Resampling.LANCZOS)
+            # Skaliere Bild auf den verfügbaren Platz; vor dem ersten Layout ist der Platz noch 1x1
+            available = (self.preview_label.winfo_width(), self.preview_label.winfo_height())
+            if min(available) < 2:
+                available = (800, 800)
+            preview_image.thumbnail(available, Image.Resampling.LANCZOS)
             
             # Zeige Vorschau an
             preview_photo = ImageTk.PhotoImage(preview_image)
             self.preview_label.config(image=preview_photo, text="", compound="center")
             self.preview_label.image = preview_photo  # Referenz behalten!
             
-            print(f"Vorschau gesetzt: {preview_image.size}")  # Debug
-            
         except Exception as exc:
-            print(f"Fehler: {exc}")  # Debug
             messagebox.showerror(
                 "Vorschau-Fehler",
                 f"Datei konnte nicht geladen werden:\n{exc}"
@@ -463,18 +533,22 @@ class PDFFusionApp:
             
             if preview_image is None:
                 if not HAS_PYMUPDF:
-                    pdf_reader = PdfReader(file_path)
-                    messagebox.showinfo(
-                        "PDF Info",
-                        f"Seitenanzahl: {len(pdf_reader.pages)}"
+                    pages = len(PdfReader(file_path).pages)
+                    self._show_preview_message(
+                        f"PDF-Vorschau benötigt PyMuPDF\nSeitenanzahl: {pages}"
                     )
                 else:
-                    messagebox.showerror("Fehler", "PDF konnte nicht geladen werden.")
+                    self._show_preview_message("PDF konnte nicht geladen werden.")
                 return None
             
             return preview_image
         else:
             return Image.open(file_path)
+
+    def _show_preview_message(self, text: str) -> None:
+        """Zeigt statt eines Bildes einen Hinweistext in der Vorschau an."""
+        self.preview_label.config(image="", text=text)
+        self.preview_label.image = None
 
     def _render_pdf_page(self, file: str, scale: float = 1.0) -> Image.Image | None:
         """Rendert die erste Seite eines PDFs als Bild (falls PyMuPDF verfügbar)."""
@@ -489,6 +563,7 @@ class PDFFusionApp:
             doc.close()
             return img
         except Exception:
+            logger.exception("PDF konnte nicht gerendert werden: %s", file)
             return None
 
     # ── Drag & Drop (intern) ───────────────────────────────────────────────────
@@ -510,7 +585,7 @@ class PDFFusionApp:
         """Wird beim Loslassen aufgerufen - zeigt Vorschau wenn nicht gedraggt wurde."""
         # Setze Farbe zurück
         if self.drag_data["widget"]:
-            self.drag_data["widget"].config(bg=CLR_DARK)
+            self.drag_data["widget"].config(bg=CLR_BG)
         
         # Zeige Vorschau nur bei Klick (nicht bei Drag)
         was_dragged = self.drag_data.get("moved", False)
@@ -572,7 +647,9 @@ class PDFFusionApp:
             return
 
         self.status_bar.config(text="Erstelle PDF …")
-        self.root.update()
+        # update_idletasks() zeichnet nur neu. Mit update() würden Klicks während des Exports
+        # verarbeitet und die Dateiliste mitten in der Schleife verändert.
+        self.root.update_idletasks()
 
         try:
             pdf_writer = PdfWriter()
@@ -581,12 +658,17 @@ class PDFFusionApp:
             # Verarbeite jede Datei
             for file_number, file_path in enumerate(self.files, 1):
                 self.status_bar.config(text=f"Verarbeite Datei {file_number}/{total_files} …")
-                self.root.update()
+                self.root.update_idletasks()
                 
-                if file_path.lower().endswith(".pdf"):
-                    self._add_pdf_to_output(file_path, pdf_writer)
-                else:
-                    self._add_image_to_output(file_path, pdf_writer)
+                try:
+                    if file_path.lower().endswith(".pdf"):
+                        self._add_pdf_to_output(file_path, pdf_writer)
+                    else:
+                        self._add_image_to_output(file_path, pdf_writer)
+                except Exception as exc:
+                    # Ohne Dateinamen ist unklar, welche Datei den Export abbricht
+                    name = os.path.basename(file_path)
+                    raise RuntimeError(f"'{name}' konnte nicht verarbeitet werden: {exc}") from exc
 
             # Speichere finales PDF
             with open(save_path, "wb") as output_file:
@@ -629,11 +711,12 @@ class PDFFusionApp:
 
         # Speichere als temporäres PDF
         temp_pdf_path = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf").name
-        image.save(temp_pdf_path, "PDF", resolution=100.0, quality=95)
-        
-        # Füge zum Output hinzu und lösche temporäre Datei
-        output.add_page(PdfReader(temp_pdf_path).pages[0])
-        os.unlink(temp_pdf_path)
+        try:
+            image.save(temp_pdf_path, "PDF", resolution=100.0, quality=95)
+            output.add_page(PdfReader(temp_pdf_path).pages[0])
+        finally:
+            # Auch bei Fehlern löschen, sonst bleibt pro gescheitertem Export eine Datei in %TEMP%
+            os.unlink(temp_pdf_path)
 
 
 if __name__ == "__main__":
