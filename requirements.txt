@@ -1,5 +1,6 @@
 # Required
 Pillow>=9.1
+customtkinter>=6.0.0  # the user interface
 pypdf[crypto]>=6.20  # [crypto] adds the cryptography package for AES-encrypted PDFs
 
 # Optional: PDF previews (PyMuPDF 1.24.3+ provides the "pymupdf" module name) and drag & drop
