@@ -10,7 +10,10 @@ import tkinter as tk
 from tkinter import filedialog, messagebox
 
 from PIL import Image, ImageTk, ImageGrab, ImageDraw
-from PyPDF2 import PdfReader, PdfWriter
+from PyPDF2 import PdfReader
+
+from pdf_fusion.core.formats import SUPPORTED_EXTENSIONS
+from pdf_fusion.core.merge import merge_to_pdf
 
 # Check optional dependencies
 try:
@@ -45,9 +48,6 @@ CLR_BLUE = "#2d8fca"
 CLR_RED = "#d94836"
 CLR_ORANGE = "#e67e22"
 CLR_MUTED = "#5f6b77"
-
-# Supported file formats
-SUPPORTED_EXTENSIONS = (".pdf", ".jpg", ".jpeg", ".png")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -653,27 +653,7 @@ class PDFFusionApp:
         self.root.update_idletasks()
 
         try:
-            pdf_writer = PdfWriter()
-            total_files = len(self.files)
-
-            # Process each file
-            for file_number, file_path in enumerate(self.files, 1):
-                self.status_bar.config(text=f"Processing file {file_number}/{total_files} …")
-                self.root.update_idletasks()
-
-                try:
-                    if file_path.lower().endswith(".pdf"):
-                        self._add_pdf_to_output(file_path, pdf_writer)
-                    else:
-                        self._add_image_to_output(file_path, pdf_writer)
-                except Exception as exc:
-                    # Without the file name it is unclear which file stopped the export
-                    name = os.path.basename(file_path)
-                    raise RuntimeError(f"Could not process '{name}': {exc}") from exc
-
-            # Save the final PDF
-            with open(save_path, "wb") as output_file:
-                pdf_writer.write(output_file)
+            merge_to_pdf(self.files, save_path, progress=self._report_progress)
 
             self.status_bar.config(text=f"Ready  |  {len(self.files)} file(s)")
             messagebox.showinfo(
@@ -687,37 +667,10 @@ class PDFFusionApp:
                 f"Could not create PDF:\n{exc}"
             )
 
-    def _add_pdf_to_output(self, pdf_path: str, output: PdfWriter) -> None:
-        """Adds all pages of a PDF to the output."""
-        pdf_reader = PdfReader(pdf_path)
-        for page in pdf_reader.pages:
-            output.add_page(page)
-
-    def _add_image_to_output(self, image_path: str, output: PdfWriter) -> None:
-        """Converts an image to a PDF page and adds it to the output."""
-        image = Image.open(image_path)
-
-        # Convert to RGB if necessary
-        if image.mode in ("RGBA", "LA", "P"):
-            rgb_image = Image.new("RGB", image.size, (255, 255, 255))
-            if image.mode == "P":
-                image = image.convert("RGBA")
-
-            # Paste the image over white, using its transparency as the mask
-            alpha_mask = image.split()[-1] if image.mode in ("RGBA", "LA") else None
-            rgb_image.paste(image, mask=alpha_mask)
-            image = rgb_image
-        elif image.mode != "RGB":
-            image = image.convert("RGB")
-
-        # Save as a temporary PDF
-        temp_pdf_path = tempfile.NamedTemporaryFile(delete=False, suffix=".pdf").name
-        try:
-            image.save(temp_pdf_path, "PDF", resolution=100.0, quality=95)
-            output.add_page(PdfReader(temp_pdf_path).pages[0])
-        finally:
-            # Always delete, otherwise a failed export leaves a file in %TEMP%
-            os.unlink(temp_pdf_path)
+    def _report_progress(self, number: int, total: int) -> None:
+        """Shows the progress of the export in the status bar."""
+        self.status_bar.config(text=f"Processing file {number}/{total} …")
+        self.root.update_idletasks()
 
 
 if __name__ == "__main__":

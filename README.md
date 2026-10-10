@@ -83,11 +83,15 @@ Images with transparency are placed on a white background.
 
 ```
 PDF-Fusion/
-├── main.py              # The application (single file)
-├── README.md            # This file
-├── CONTRIBUTING.md      # Contribution guidelines
-├── LICENSE              # MIT license
-└── docs/screenshots/    # Screenshots used in this README
+├── main.py                # Entry point and the Tkinter user interface
+├── pdf_fusion/core/      # Merge logic, no GUI code
+├── tests/                 # pytest tests for pdf_fusion
+├── requirements.txt       # Runtime dependencies
+├── requirements-dev.txt   # Test dependencies
+├── README.md              # This file
+├── CONTRIBUTING.md        # Contribution guidelines
+├── LICENSE                # MIT license
+└── docs/screenshots/      # Screenshots used in this README
 ```
 
 ### Main component
@@ -96,7 +100,7 @@ PDF-Fusion/
   - Builds the window and the UI.
   - Manages the file list, drag & drop reordering and removal.
   - Creates thumbnails and previews.
-  - Exports the result with PyPDF2 and Pillow.
+  - Exports through `pdf_fusion.core.merge.merge_to_pdf`.
 
 ### Supported formats
 
