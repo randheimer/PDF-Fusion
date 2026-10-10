@@ -59,21 +59,21 @@ python main.py
 
 ## 💻 Usage
 
-The button labels in the app are in German. The table maps them to what they do:
+The buttons and their shortcuts:
 
 | Button (label in the app) | Shortcut | Action |
 |---------------------------|----------|--------|
-| ➕ Dateien hinzufügen | Ctrl+O | Add PDF and image files |
-| 📋 Aus Zwischenablage | Ctrl+V | Add an image from the clipboard |
-| 🗑️ Alle löschen | Delete | Remove all files (asks for confirmation) |
-| 💾 Als PDF speichern | Ctrl+S | Export everything as one PDF |
+| ➕ Add files | Ctrl+O | Add PDF and image files |
+| 📋 Paste from clipboard | Ctrl+V | Add an image from the clipboard |
+| 🗑️ Clear all | Delete | Remove all files (asks for confirmation) |
+| 💾 Save as PDF | Ctrl+S | Export everything as one PDF |
 
-1. **Add files:** click "Dateien hinzufügen", or drag files into the window.
+1. **Add files:** click "Add files", or drag files into the window.
 2. **Change the order:** drag thumbnails up or down. The export follows the order shown.
 3. **Preview:** click a thumbnail. A PDF shows its first page; an image is shown in full. Previews are scaled to fit, to at most 800 px.
 4. **Remove a file:** click the red ✕ on its thumbnail.
-5. **Paste an image:** copy an image, then click "Aus Zwischenablage".
-6. **Export:** click "Als PDF speichern" and choose the output file. Every page of every PDF is kept. Each image becomes one page.
+5. **Paste an image:** copy an image, then click "Paste from clipboard".
+6. **Export:** click "Save as PDF" and choose the output file. Every page of every PDF is kept. Each image becomes one page.
 
 Images with transparency are placed on a white background.
 

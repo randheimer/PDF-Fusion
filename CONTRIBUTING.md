@@ -62,7 +62,7 @@ git push origin feature/my-new-feature
 
 ### Documentation
 - Add docstrings to public functions.
-- Code comments and UI texts are currently in German. Keep new comments consistent with the code around them.
+- Write code comments and UI texts in English.
 - Update the README when you add a feature.
 
 ### Testing
