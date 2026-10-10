@@ -15,9 +15,12 @@ from PyPDF2 import PdfReader, PdfWriter
 # Optionale Abhängigkeiten prüfen
 try:
     import pymupdf
-    HAS_PYMUPDF = True
 except ImportError:
-    HAS_PYMUPDF = False
+    try:
+        import fitz as pymupdf  # PyMuPDF vor 1.24.3 stellt nur diesen Namen bereit
+    except ImportError:
+        pymupdf = None
+HAS_PYMUPDF = pymupdf is not None
 
 try:
     from tkinterdnd2 import DND_FILES, TkinterDnD
