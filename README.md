@@ -40,7 +40,7 @@ cd PDF-Fusion
 ### Step 2: Install the dependencies
 
 ```bash
-pip install Pillow PyPDF2 PyMuPDF tkinterdnd2 pycryptodome
+pip install -r requirements.txt
 ```
 
 | Package | Required | Purpose |

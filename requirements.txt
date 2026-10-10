@@ -1,8 +1,8 @@
-# Pflicht
+# Required
 Pillow>=9.1
 PyPDF2>=3.0
-pycryptodome  # PyPDF2 braucht es für AES-verschlüsselte PDFs ohne Benutzerpasswort (z. B. nur Sperren)
+pycryptodome  # PyPDF2 needs this for AES-encrypted PDFs without a user password (e.g. restrictions only)
 
-# Optional: PDF-Vorschau (PyMuPDF ab 1.24.3 stellt den Namen "pymupdf" bereit) und Drag & Drop
+# Optional: PDF previews (PyMuPDF 1.24.3+ provides the "pymupdf" module name) and drag & drop
 PyMuPDF>=1.24.3
 tkinterdnd2
