@@ -592,10 +592,15 @@ class PDFFusionApp:
                 self.status_bar.config(text=f"Verarbeite Datei {file_number}/{total_files} …")
                 self.root.update()
                 
-                if file_path.lower().endswith(".pdf"):
-                    self._add_pdf_to_output(file_path, pdf_writer)
-                else:
-                    self._add_image_to_output(file_path, pdf_writer)
+                try:
+                    if file_path.lower().endswith(".pdf"):
+                        self._add_pdf_to_output(file_path, pdf_writer)
+                    else:
+                        self._add_image_to_output(file_path, pdf_writer)
+                except Exception as exc:
+                    # Ohne Dateinamen ist unklar, welche Datei den Export abbricht
+                    name = os.path.basename(file_path)
+                    raise RuntimeError(f"'{name}' konnte nicht verarbeitet werden: {exc}") from exc
 
             # Speichere finales PDF
             with open(save_path, "wb") as output_file:
