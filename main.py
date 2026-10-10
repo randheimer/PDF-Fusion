@@ -3,6 +3,7 @@ PDF Fusion - Ein moderner PDF-Editor für Windows
 Ermöglicht das Zusammenführen von PDFs und Bildern zu einem PDF-Dokument.
 """
 
+import logging
 import os
 import tempfile
 import tkinter as tk
@@ -23,6 +24,8 @@ try:
     HAS_DND = True
 except ImportError:
     HAS_DND = False
+
+logger = logging.getLogger(__name__)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -48,19 +51,20 @@ SUPPORTED_EXTENSIONS = (".pdf", ".jpg", ".jpeg", ".png")
 # HILFSFUNKTIONEN
 # ═══════════════════════════════════════════════════════════════════════════
 
-def _pdf_placeholder(size: tuple[int, int] = (80, 80)) -> Image.Image:
+def _placeholder(size: tuple[int, int] = (80, 80), text: str = "PDF") -> Image.Image:
     """
     Erstellt ein graues Platzhalterbild für PDFs ohne Vorschau.
     
     Args:
         size: Tuple mit (Breite, Höhe) des Platzhalterbildes
+        text: Beschriftung des Platzhalters
         
     Returns:
-        PIL Image Objekt mit grauem Hintergrund und "PDF" Text
+        PIL Image Objekt mit grauem Hintergrund und der Beschriftung
     """
     img = Image.new("RGB", size, "lightgray")
     draw = ImageDraw.Draw(img)
-    draw.text((size[0] // 2 - 10, size[1] // 2 - 5), "PDF", fill="black")
+    draw.text((size[0] // 2 - 10, size[1] // 2 - 5), text, fill="black")
     return img
 
 
@@ -436,13 +440,15 @@ class PDFFusionApp:
     def create_thumbnail(self, file: str) -> ImageTk.PhotoImage:
         try:
             if file.lower().endswith(".pdf"):
-                img = self._render_pdf_page(file, scale=0.3) or _pdf_placeholder()
+                img = self._render_pdf_page(file, scale=0.3) or _placeholder()
             else:
                 img = Image.open(file)
             img.thumbnail((80, 80))
             return ImageTk.PhotoImage(img)
         except Exception:
-            return ImageTk.PhotoImage(_pdf_placeholder())
+            # Unlesbare Datei: eigener Platzhalter statt "PDF", damit der Fehler sichtbar ist
+            logger.exception("Thumbnail konnte nicht erstellt werden: %s", file)
+            return ImageTk.PhotoImage(_placeholder(text="?"))
 
     def show_preview(self, index: int) -> None:
         """Zeigt eine Vorschau der Datei an der angegebenen Position."""
@@ -483,18 +489,22 @@ class PDFFusionApp:
             
             if preview_image is None:
                 if not HAS_PYMUPDF:
-                    pdf_reader = PdfReader(file_path)
-                    messagebox.showinfo(
-                        "PDF Info",
-                        f"Seitenanzahl: {len(pdf_reader.pages)}"
+                    pages = len(PdfReader(file_path).pages)
+                    self._show_preview_message(
+                        f"PDF-Vorschau benötigt PyMuPDF\nSeitenanzahl: {pages}"
                     )
                 else:
-                    messagebox.showerror("Fehler", "PDF konnte nicht geladen werden.")
+                    self._show_preview_message("PDF konnte nicht geladen werden.")
                 return None
             
             return preview_image
         else:
             return Image.open(file_path)
+
+    def _show_preview_message(self, text: str) -> None:
+        """Zeigt statt eines Bildes einen Hinweistext in der Vorschau an."""
+        self.preview_label.config(image="", text=text)
+        self.preview_label.image = None
 
     def _render_pdf_page(self, file: str, scale: float = 1.0) -> Image.Image | None:
         """Rendert die erste Seite eines PDFs als Bild (falls PyMuPDF verfügbar)."""
@@ -509,6 +519,7 @@ class PDFFusionApp:
             doc.close()
             return img
         except Exception:
+            logger.exception("PDF konnte nicht gerendert werden: %s", file)
             return None
 
     # ── Drag & Drop (intern) ───────────────────────────────────────────────────
