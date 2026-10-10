@@ -72,6 +72,18 @@ git push origin feature/my-new-feature
 - Test with files of different sizes and formats.
 - Run `python -m pytest` before you open a pull request. CI runs the same tests on Python 3.10 to 3.12.
 
+## 📦 Build the portable exe
+
+```bash
+pip install -r requirements.txt pyinstaller
+pyinstaller packaging/pdf-fusion.spec --noconfirm
+dist\PDF-Fusion.exe --smoke-test
+```
+
+The smoke test merges a generated page and renders it, which checks the bundled libraries. It exits with 0 on success.
+
+Releases are built by the Release workflow when a tag such as `v0.1.0` is pushed. The tag must match `pdf_fusion/__init__.py`, and `CHANGELOG.md` needs a section `## [0.1.0]`. A workflow run without a tag only builds and tests the exe.
+
 ## 🐛 Known issues
 
 See the [issue list](https://github.com/randheimer/PDF-Fusion/issues) for current problems and planned features.
