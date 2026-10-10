@@ -46,6 +46,7 @@ pip install -r requirements.txt
 | Package | Required | Purpose |
 |---------|----------|---------|
 | `Pillow` | yes | Image handling and PDF page creation for images |
+| `customtkinter` | yes | The user interface |
 | `pypdf[crypto]` | yes | Reading and merging PDF pages. The `crypto` extra adds AES decryption. |
 | `PyMuPDF` (1.24.3 or newer) | optional | PDF thumbnails and previews. Older releases only provide the `fitz` module name, which this version does not import. |
 | `tkinterdnd2` | optional | Drag & drop from Explorer |
@@ -92,8 +93,9 @@ Available: `en` (default), `de`, `de-CH`. More languages are added as JSON files
 
 ```
 PDF-Fusion/
-├── main.py                # Entry point and the Tkinter user interface
-├── pdf_fusion/core/      # Merge logic, no GUI code
+├── main.py                # Entry point
+├── pdf_fusion/core/      # Merge and render logic, no GUI code
+├── pdf_fusion/ui/        # CustomTkinter user interface, theme and thumbnails
 ├── pdf_fusion/i18n/      # Translations: one JSON file per language
 ├── tests/                 # pytest tests for pdf_fusion
 ├── requirements.txt       # Runtime dependencies
@@ -106,7 +108,7 @@ PDF-Fusion/
 
 ### Main component
 
-- **`PDFFusionApp`** (`main.py`): the Tkinter application.
+- **`PDFFusionApp`** (`pdf_fusion/ui/app.py`): the CustomTkinter application.
   - Builds the window and the UI.
   - Manages the file list, drag & drop reordering and removal.
   - Creates thumbnails and previews.
